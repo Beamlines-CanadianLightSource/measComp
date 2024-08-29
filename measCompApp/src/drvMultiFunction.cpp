@@ -523,6 +523,10 @@ static const boardEnums_t allBoardEnums[] = {
   {USB_1608G,      inputRangeUSB_1608G,   sizeof(inputRangeUSB_1608G)/sizeof(enumStruct_t),
                    outputRangeUSB_1608G,  sizeof(outputRangeUSB_1608G)/sizeof(enumStruct_t),
                    inputTypeUSB_1608G,    sizeof(inputTypeUSB_1608G)/sizeof(enumStruct_t)},
+  
+  {USB_1608HS_2AO,     inputRangeUSB_1608G,   sizeof(inputRangeUSB_1608G)/sizeof(enumStruct_t),
+                   outputRangeUSB_1608G,  sizeof(outputRangeUSB_1608G)/sizeof(enumStruct_t),
+                   inputTypeUSB_1608G,    sizeof(inputTypeUSB_1608G)/sizeof(enumStruct_t)},
 
   {USB_1808,       inputRangeUSB_1808,    sizeof(inputRangeUSB_1808)/sizeof(enumStruct_t),
                    outputRangeUSB_1808,   sizeof(outputRangeUSB_1808)/sizeof(enumStruct_t),
@@ -938,8 +942,6 @@ MultiFunction::MultiFunction(const char *portName, const char *uniqueID, int max
     case USB_1608GX_2AO:
     case USB_1608GX_2AO_OLD:
     case USB_1608HS_2AO:
-      boardFamily_ = USB_1608G;
-      break;
     case USB_1808:
     case USB_1808X:
       boardFamily_ = USB_1808;
@@ -1087,13 +1089,15 @@ MultiFunction::MultiFunction(const char *portName, const char *uniqueID, int max
       maxPulseGenDelay_ = 67.11;
       break;
     case USB_1608HS_2AO:
-      numTimers_    = 1;
       numCounters_  = 1;
       firstCounter_ = 0;
-      minPulseGenFrequency_ = 0.0149;
-      maxPulseGenFrequency_ = 32e6;
-      minPulseGenDelay_ = 0.;
-      maxPulseGenDelay_ = 67.11;
+      #ifdef linux
+        numIOPorts_ = 2;
+      #endif
+      // Digital I/O port 0 is input only
+      setUIntDigitalParam(0, digitalDirection_, 0, 0xFFFFFFFF);
+      // Digital I/O port 1 is output 
+      setUIntDigitalParam(1, digitalDirection_, 0xFFFFFFFF, 0xFFFFFFFF);
       break;
     case USB_1808:
       numTimers_    = 2;
@@ -2598,7 +2602,7 @@ void MultiFunction::pollerThread()
     }
 
     // Read the counter inputs
-    for (i=0; i<numCounters_; i++) {
+    for (i=0; i<1; i++) {
       #ifdef _WIN32
         ULONG data;
         status = cbCIn32(boardNum_, firstCounter_ + i, &data);
@@ -2611,7 +2615,8 @@ void MultiFunction::pollerThread()
       if (status) {
         if (!prevStatus) {
           reportError(status, functionName, "Calling CIn");
-        }
+          printf("Counter Number: %d", i);
+	}
         goto error;
       }
       setIntegerParam(i, counterCounts_, countVal);
