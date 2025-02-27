@@ -1,0 +1,2 @@
+export MEASCOMP='/home/sgm/Development/measComp'
+/home/sgm/Development/measComp/bin/linux-x86_64/measCompApp /home/sgm/Development/measComp/iocBoot/iocUSB1608HS-2AO/st.cmd
